@@ -121,7 +121,12 @@ func writeToFile(defs []StructDef, filename string, packageName string, flag_str
 	for _, st := range defs {
 		io.WriteString(file, fmt.Sprintf("type %s struct {\n", st.Name))
 		for _, field := range st.Fields {
-			fieldtype := typeEquivalents[field.CType]
+			fieldtype, ok := typeEquivalents[field.CType]
+			// keep unknown types: it's easier to edit later
+			// TODO: make this case configurable
+			if !ok {
+				fieldtype = field.CType
+			}
 			if field.IsArray == true {
 				fieldtype = fmt.Sprintf("[%d]%s", field.ArraySize, fieldtype)
 			}

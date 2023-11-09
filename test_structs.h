@@ -19,4 +19,5 @@ typedef struct
 struct other_test_struct {
     int *int_ptr;
     int array_of_4[4];
+    unknown_type unknown_value;
 }
