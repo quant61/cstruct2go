@@ -15,3 +15,8 @@ typedef struct
   	int32_t int32_value;
   	int64_t int64_value;
 } test_struct;
+
+struct other_test_struct {
+    int *int_ptr;
+    int array_of_4[4];
+}

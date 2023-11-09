@@ -137,6 +137,10 @@ func createStructsFromFile(filename string, capitalize bool) []StructDef {
 
 	var struct_decl bool = false
 	var struct_begin bool = false
+	var struct_name0 string
+	// `typedef struct {...} Name` or `struct Name {...}`
+	var isTypeDef = false
+	_ = isTypeDef
 
 	var current_struct *StructDef
 	var all_structs []StructDef = make([]StructDef, 0, 100)
@@ -148,11 +152,10 @@ func createStructsFromFile(filename string, capitalize bool) []StructDef {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	startRe := regexp.MustCompile(`^\s*(typedef)?\s*struct\s*([a-zA-Z_][a-zA-Z_\d]*)?\s*(\{)?$`)
 	for scanner.Scan() {
 		line := strings.Replace(scanner.Text(), "\t", "  ", -1)
-		if line == "typedef struct" {
-			struct_decl = true
-		} else if struct_decl == true {
+		if struct_decl {
 			if line == "{" {
 				struct_begin = true
 				current_struct = new(StructDef)
@@ -160,7 +163,14 @@ func createStructsFromFile(filename string, capitalize bool) []StructDef {
 			} else if strings.Contains(line, "}") {
 				s := splitAndRemoveInitialSpaces(line)
 				newStructDef := current_struct
-				struct_name := trimSemiColons(s[1])
+				var struct_name string
+				if len(s) > 1 {
+					struct_name = trimSemiColons(s[1])
+				}
+				// in case of struct without typedef
+				if struct_name == "" {
+					struct_name = struct_name0
+				}
 				if capitalize {
 					struct_name = strings.Title(struct_name)
 				}
@@ -169,6 +179,7 @@ func createStructsFromFile(filename string, capitalize bool) []StructDef {
 				all_structs = all_structs[0 : length+1]
 				all_structs[length] = *newStructDef
 				struct_begin = false
+				struct_decl = false
 			} else if struct_begin == true {
 				s := splitAndRemoveInitialSpaces(line)
 				length := len(current_struct.Fields)
@@ -178,6 +189,25 @@ func createStructsFromFile(filename string, capitalize bool) []StructDef {
 					field_name = strings.Title(field_name)
 				}
 				current_struct.Fields[length] = StructField{Name: field_name, CType: s[0]}
+			}
+			// } else if line == "typedef struct" {
+			// 	struct_decl = true
+			// 	m := startRe.FindStringSubmatch(line)
+			// 	fmt.Printf("%q\n", m)
+		} else {
+			m := startRe.FindStringSubmatch(line)
+			if len(m) == 0 {
+				continue
+			}
+			isTypeDef = m[1] == "typedef"
+			// for `struct typename` without typedef
+			struct_name0 = m[2]
+			struct_decl = true
+			// `{` is often on the same line as struct declaration
+			if m[3] == "{" {
+				struct_begin = true
+				current_struct = new(StructDef)
+				current_struct.Fields = make([]StructField, 0, 100)
 			}
 		}
 	}
