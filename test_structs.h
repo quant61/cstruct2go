@@ -19,5 +19,16 @@ typedef struct
 struct other_test_struct {
     int *int_ptr;
     int array_of_4[4];
+    size_t opaque_pointer;
     unknown_type unknown_value;
+};
+
+// examples of bugs which should be fixed
+struct bugs_to_fix {
+    // comments are transformed to fields
+    // it also panics on empty lines
+    // and comments like this: /* comment */
+    __u32 found_in_kernel_sources;
+    void *should_be_unsafe_pointer;
+    // // int* pointers_like_this_not_handled_properly;
 };
